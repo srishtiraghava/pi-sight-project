@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PISIGHT - IoT Assistant</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        padding: 30px;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid #e9ecef;
+      }
+
+      .panel h2 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        font-size: 1.4em;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+
+      .panel h3 {
+        color: #34495e;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #e74c3c;
+      }
+
+      .status-dot.connected {
+        background: #2ecc71;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+
+      button {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        flex: 1;
+        min-width: 120px;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+      }
+
+      button:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      button.recording {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        animation: recordingPulse 1.5s infinite;
+      }
+
+      @keyframes recordingPulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .video-container {
+        background: #2c3e50;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      #videoFeed {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+      }
+
+      .log-container {
+        background: #2c3e50;
+        color: #ecf0f1;
+        border-radius: 10px;
+        padding: 15px;
+        height: 200px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-left: 3px solid #3498db;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .log-entry.error {
+        border-left-color: #e74c3c;
+        color: #e74c3c;
+      }
+
+      .log-entry.success {
+        border-left-color: #2ecc71;
+        color: #2ecc71;
+      }
+
+      .log-entry.warning {
+        border-left-color: #f39c12;
+        color: #f39c12;
+      }
+
+      .response-area {
+        background: white;
+        border: 2px solid #3498db;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        min-height: 100px;
+      }
+
+      .response-text {
+        font-size: 16px;
+        line-height: 1.6;
+        color: #2c3e50;
+      }
+
+      .audio-controls {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .progress-bar {
+        flex: 1;
+        height: 4px;
+        background: #ecf0f1;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .progress {
+        height: 100%;
+        background: #3498db;
+        width: 0%;
+        transition: width 0.1s ease;
+      }
+
+      .url-input {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #bdc3c7;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔮 PISIGHT IoT Assistant</h1>
+        <p>Real-time Vision and Voice AI Assistant</p>
+      </div>
+
+      <div class="main-content">
+        <!-- Left Panel - Controls -->
+        <div class="panel">
+          <h2>Device Controls</h2>
+
+          <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+          </div>
+
+          <div style="margin-bottom: 20px">
+            <label
+              style="
+                display: block;
+                margin-bottom: 5px;
+                font-weight: 600;
+                color: #2c3e50;
+              "
+              >Server URL:</label
+            >
+            <input
+              type="text"
+              id="serverUrl"
+              class="url-input"
+              value="http://localhost:3000"
+              placeholder="http://localhost:3000"
+            />
+          </div>
+
+          <div class="button-group">
+            <button id="connectBtn" onclick="connectDevice()">
+              Connect Device
+            </button>
+            <button id="disconnectBtn" onclick="disconnectDevice()" disabled>
+              Disconnect
+            </button>
+          </div>
+
+          <div class="button-group">
+            <button id="startCamera" onclick="startCamera()" disabled>
+              Start Camera
+            </button>
+            <button id="stopCamera" onclick="stopCamera()" disabled>
+              Stop Camera
+            </button>
+            <button id="captureImage" onclick="captureImage()" disabled>
+              Capture Image
+            </button>
+          </div>
+
+          <div class="button-group">
+            <button id="startAudio" onclick="startAudioRecording()" disabled>
+              Start Listening
+            </button>
+            <button id="stopAudio" onclick="stopAudioRecording()" disabled>
+              Stop Listening
+            </button>
+          </div>
+
+          <div class="video-container">
+            <video id="videoFeed" autoplay muted></video>
+          </div>
+
+          <div>
+            <h3>Session Log</h3>
+            <div class="log-container" id="logContainer"></div>
+          </div>
+        </div>
+
+        <!-- Right Panel - Responses -->
+        <div class="panel">
+          <h2>AI Responses</h2>
+
+          <div class="response-area">
+            <div class="response-text" id="responseText">
+              Responses from the AI assistant will appear here...
+            </div>
+            <div
+              class="audio-controls"
+              id="audioControls"
+              style="display: none"
+            >
+              <button onclick="playAudio()">🔊 Play</button>
+              <button onclick="stopAudioPlayback()">⏹️ Stop</button>
+              <div class="progress-bar">
+                <div class="progress" id="audioProgress"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px">
+            <h3>Manual Input</h3>
+            <div style="display: flex; gap: 10px">
+              <input
+                type="text"
+                id="manualInput"
+                placeholder="Type your message here..."
+                class="url-input"
+                onkeypress="handleManualInput(event)"
+              />
+              <button onclick="sendManualMessage()">Send</button>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px">
+            <h3>Device Settings</h3>
+            <div class="button-group">
+              <button onclick="clearImage()">Clear Current Image</button>
+              <button onclick="testConnection()">Test Connection</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Socket.IO from CDN -->
+    <script
+      src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+      integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      class PISIGHTClient {
+        constructor() {
+          this.socket = null;
+          this.isConnected = false;
+          this.isRecording = false;
+          this.mediaRecorder = null;
+          this.audioChunks = [];
+          this.stream = null;
+          this.currentAudio = null;
+          this.audioSource = null;
+
+          this.initializeElements();
+          this.setupEventListeners();
+        }
+
+        initializeElements() {
+          this.elements = {
+            statusDot: document.getElementById("statusDot"),
+            statusText: document.getElementById("statusText"),
+            connectBtn: document.getElementById("connectBtn"),
+            disconnectBtn: document.getElementById("disconnectBtn"),
+            startCamera: document.getElementById("startCamera"),
+            stopCamera: document.getElementById("stopCamera"),
+            captureImage: document.getElementById("captureImage"),
+            startAudio: document.getElementById("startAudio"),
+            stopAudio: document.getElementById("stopAudio"),
+            videoFeed: document.getElementById("videoFeed"),
+            logContainer: document.getElementById("logContainer"),
+            responseText: document.getElementById("responseText"),
+            audioControls: document.getElementById("audioControls"),
+            audioProgress: document.getElementById("audioProgress"),
+            manualInput: document.getElementById("manualInput"),
+            serverUrl: document.getElementById("serverUrl"),
+          };
+        }
+
+        setupEventListeners() {
+          // Socket event listeners will be setup during connection
+        }
+
+        connect() {
+          try {
+            // Check if io is available
+            if (typeof io === "undefined") {
+              this.log("Socket.IO library not loaded!", "error");
+              return;
+            }
+
+            const serverUrl = this.elements.serverUrl.value.trim();
+            if (!serverUrl) {
+              this.log("Please enter a server URL", "error");
+              return;
+            }
+
+            this.log(`Attempting to connect to: ${serverUrl}`, "info");
+
+            // Close existing connection if any
+            if (this.socket) {
+              this.socket.close();
+            }
+
+            // Create socket connection with explicit options
+            this.socket = io(serverUrl, {
+              transports: ["websocket", "polling"],
+              reconnection: true,
+              reconnectionDelay: 1000,
+              reconnectionAttempts: 5,
+              timeout: 10000,
+            });
+
+            // Connection successful
+            this.socket.on("connect", () => {
+              this.isConnected = true;
+              this.updateConnectionStatus(true);
+              this.log(
+                `✓ Connected successfully! Socket ID: ${this.socket.id}`,
+                "success"
+              );
+              this.enableControls();
+            });
+
+            // Connection error
+            this.socket.on("connect_error", (error) => {
+              this.log(`Connection error: ${error.message}`, "error");
+              this.log("Make sure your backend server is running", "warning");
+            });
+
+            // Connection timeout
+            this.socket.on("connect_timeout", () => {
+              this.log("Connection timeout - server not responding", "error");
+            });
+
+            // Reconnection attempts
+            this.socket.on("reconnect_attempt", (attemptNumber) => {
+              this.log(`Reconnection attempt ${attemptNumber}...`, "warning");
+            });
+
+            // Reconnection failed
+            this.socket.on("reconnect_failed", () => {
+              this.log("Reconnection failed - please check server", "error");
+            });
+
+            // Disconnection
+            this.socket.on("disconnect", (reason) => {
+              this.isConnected = false;
+              this.updateConnectionStatus(false);
+              this.log(`Disconnected: ${reason}`, "error");
+              this.disableControls();
+            });
+
+            // Custom events from your backend
+            this.socket.on("stt_ready", (data) => {
+              this.log(`STT session ready: ${data.sessionId}`, "success");
+            });
+
+            this.socket.on("image_received", (data) => {
+              this.log(
+                `Image received by server (${data.size} bytes)`,
+                "success"
+              );
+            });
+
+            this.socket.on("ai_response", (data) => {
+              this.handleAIResponse(data);
+            });
+
+            this.socket.on("error", (error) => {
+              const errorMsg =
+                typeof error === "string"
+                  ? error
+                  : error.message || JSON.stringify(error);
+              this.log(`Server error: ${errorMsg}`, "error");
+            });
+
+            this.socket.on("image_cleared", () => {
+              this.log("Image cleared from session", "info");
+            });
+          } catch (error) {
+            this.log(`Connection failed: ${error.message}`, "error");
+            console.error("Connection error:", error);
+          }
+        }
+
+        disconnect() {
+          if (this.socket) {
+            this.socket.close();
+            this.socket = null;
+          }
+          this.isConnected = false;
+          this.updateConnectionStatus(false);
+          this.stopCamera();
+          this.stopAudioRecording();
+          this.disableControls();
+          this.log("Disconnected from server", "info");
+        }
+
+        updateConnectionStatus(connected) {
+          const { statusDot, statusText, connectBtn, disconnectBtn } =
+            this.elements;
+
+          if (connected) {
+            statusDot.classList.add("connected");
+            statusText.textContent = "Connected";
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = false;
+          } else {
+            statusDot.classList.remove("connected");
+            statusText.textContent = "Disconnected";
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+          }
+        }
+
+        enableControls() {
+          this.elements.startCamera.disabled = false;
+          this.elements.startAudio.disabled = false;
+        }
+
+        disableControls() {
+          this.elements.startCamera.disabled = true;
+          this.elements.stopCamera.disabled = true;
+          this.elements.captureImage.disabled = true;
+          this.elements.startAudio.disabled = true;
+          this.elements.stopAudio.disabled = true;
+        }
+
+        async startCamera() {
+          try {
+            this.stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 1280, height: 720 },
+            });
+            this.elements.videoFeed.srcObject = this.stream;
+
+            this.elements.startCamera.disabled = true;
+            this.elements.stopCamera.disabled = false;
+            this.elements.captureImage.disabled = false;
+
+            this.log("Camera started successfully", "success");
+          } catch (error) {
+            this.log(`Camera error: ${error.message}`, "error");
+          }
+        }
+
+        stopCamera() {
+          if (this.stream) {
+            this.stream.getTracks().forEach((track) => track.stop());
+            this.stream = null;
+            this.elements.videoFeed.srcObject = null;
+
+            this.elements.startCamera.disabled = false;
+            this.elements.stopCamera.disabled = true;
+            this.elements.captureImage.disabled = true;
+
+            this.log("Camera stopped", "info");
+          }
+        }
+
+        captureImage() {
+          if (!this.stream) {
+            this.log("No camera stream available", "error");
+            return;
+          }
+
+          const canvas = document.createElement("canvas");
+          const video = this.elements.videoFeed;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0);
+
+          canvas.toBlob(
+            (blob) => {
+              this.sendImageToServer(blob);
+            },
+            "image/jpeg",
+            0.8
+          );
+        }
+
+        sendImageToServer(blob) {
+          if (!this.isConnected || !this.socket) {
+            this.log("Not connected to server", "error");
+            return;
+          }
+
+          const chunkSize = 16384; // 16KB chunks
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            const arrayBuffer = reader.result;
+            const totalChunks = Math.ceil(arrayBuffer.byteLength / chunkSize);
+
+            this.log(`Sending image (${totalChunks} chunks)...`, "info");
+
+            for (let i = 0; i < totalChunks; i++) {
+              const chunk = arrayBuffer.slice(
+                i * chunkSize,
+                (i + 1) * chunkSize
+              );
+              this.socket.emit("image_chunk", {
+                chunk: chunk,
+                isLast: i === totalChunks - 1,
+              });
+            }
+
+            this.log(`Image sent successfully`, "success");
+          };
+
+          reader.readAsArrayBuffer(blob);
+        }
+
+        async startAudioRecording() {
+          try {
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                sampleRate: 16000,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true,
+              },
+            });
+
+            this.mediaRecorder = new MediaRecorder(audioStream, {
+              mimeType: "audio/webm;codecs=opus",
+            });
+
+            this.audioChunks = []; // reset
+            this.isRecording = true;
+
+            this.mediaRecorder.ondataavailable = (event) => {
+              if (event.data.size > 0) {
+                this.audioChunks.push(event.data); // just collect
+              }
+            };
+
+            this.mediaRecorder.onstop = () => {
+              this.log("Audio recording stopped", "info");
+              this.updateAudioControls(false);
+              this.sendFullAudio(); // send all chunks at once
+            };
+
+            this.mediaRecorder.start(); // start recording
+
+            if (this.socket) {
+              this.socket.emit("audio_start");
+            }
+
+            this.updateAudioControls(true);
+            this.log("🎤 Audio recording started - Speak now...", "success");
+
+            // Optional: auto-stop after 2 seconds silence
+            // this.setupSilenceDetection(audioStream);
+          } catch (error) {
+            this.log(`Audio recording error: ${error.message}`, "error");
+          }
+        }
+
+        stopAudioRecording() {
+          if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+
+            if (this.socket) {
+              this.socket.emit("audio_end");
+            }
+
+            // Stop all tracks
+            this.mediaRecorder.stream
+              .getTracks()
+              .forEach((track) => track.stop());
+
+            this.updateAudioControls(false);
+          }
+        }
+        sendFullAudio() {
+          if (!this.isConnected || !this.socket) {
+            this.log("Not connected to server", "error");
+            return;
+          }
+
+          if (this.audioChunks.length === 0) {
+            this.log("No audio data recorded", "warning");
+            return;
+          }
+
+          const fullBlob = new Blob(this.audioChunks, { type: "audio/webm" });
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const arrayBuffer = reader.result;
+            this.socket.emit("audio_full", arrayBuffer); // emit as single chunk
+            this.log(
+              `Sent full audio (${arrayBuffer.byteLength} bytes)`,
+              "success"
+              
+            );
+        
+          };
+          reader.readAsArrayBuffer(fullBlob);
+        }
+
+        updateAudioControls(recording) {
+          const { startAudio, stopAudio } = this.elements;
+
+          if (recording) {
+            startAudio.disabled = true;
+            stopAudio.disabled = false;
+            startAudio.classList.add("recording");
+          } else {
+            startAudio.disabled = false;
+            stopAudio.disabled = true;
+            startAudio.classList.remove("recording");
+          }
+        }
+
+        handleAIResponse(data) {
+          this.elements.responseText.textContent = data.text;
+          this.elements.audioControls.style.display = "block";
+          this.currentAudio = data.audio;
+
+          this.log(
+            `AI response: ${data.text.substring(0, 50)}${
+              data.text.length > 50 ? "..." : ""
+            }`,
+            "success"
+          );
+        }
+
+        playAudio() {
+          if (!this.currentAudio) {
+            this.log("No audio available to play", "warning");
+            return;
+          }
+
+          try {
+            const audioContext = new AudioContext();
+            const audioBuffer = Uint8Array.from(atob(this.currentAudio), (c) =>
+              c.charCodeAt(0)
+            );
+
+            audioContext.decodeAudioData(
+              audioBuffer.buffer,
+              (buffer) => {
+                // Stop previous audio if playing
+                if (this.audioSource) {
+                  this.audioSource.stop();
+                }
+
+                this.audioSource = audioContext.createBufferSource();
+                this.audioSource.buffer = buffer;
+                this.audioSource.connect(audioContext.destination);
+                console.log('Audio buffer length:', audioBuffer.byteLength);
+
+                const startTime = audioContext.currentTime;
+                this.audioSource.start();
+
+                // Update progress bar
+                const updateProgress = () => {
+                  const elapsed = audioContext.currentTime - startTime;
+                  const duration = buffer.duration;
+                  const progress = (elapsed / duration) * 100;
+
+                  this.elements.audioProgress.style.width = `${Math.min(
+                    progress,
+                    100
+                  )}%`;
+
+                  if (elapsed < duration && this.audioSource) {
+                    requestAnimationFrame(updateProgress);
+                  } else {
+                    this.elements.audioProgress.style.width = "0%";
+                    this.audioSource = null;
+                  }
+                };
+
+                updateProgress();
+                this.log("Playing audio response", "info");
+              },
+              (error) => {
+                this.log(`Audio decode error: ${error.message}`, "error");
+              }
+            );
+          } catch (error) {
+            this.log(`Audio playback error: ${error.message}`, "error");
+          }
+        }
+
+        stopAudioPlayback() {
+          if (this.audioSource) {
+            this.audioSource.stop();
+            this.audioSource = null;
+          }
+          this.elements.audioProgress.style.width = "0%";
+          this.log("Audio playback stopped", "info");
+        }
+
+        sendManualMessage() {
+          const message = this.elements.manualInput.value.trim();
+          if (!message) {
+            this.log("Please enter a message", "warning");
+            return;
+          }
+
+          if (!this.isConnected) {
+            this.log("Not connected to server", "error");
+            return;
+          }
+
+          this.socket.emit("text_message", message);
+          this.elements.manualInput.value = "";
+          this.log(`📤 Sent: ${message}`, "info");
+        }
+
+        handleManualInput(event) {
+          if (event.key === "Enter") {
+            this.sendManualMessage();
+          }
+        }
+
+        clearImage() {
+          if (!this.isConnected) {
+            this.log("Not connected to server", "error");
+            return;
+          }
+          this.socket.emit("clear_image");
+          this.log("Clear image request sent", "info");
+        }
+
+        testConnection() {
+          if (this.isConnected && this.socket) {
+            this.log(
+              `✓ Connection OK - Socket ID: ${this.socket.id}`,
+              "success"
+            );
+            this.log(`Server: ${this.elements.serverUrl.value}`, "success");
+          } else {
+            this.log("✗ Not connected to server", "error");
+          }
+        }
+
+        log(message, type = "info") {
+          const logEntry = document.createElement("div");
+          logEntry.className = `log-entry ${type}`;
+          logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+          this.elements.logContainer.appendChild(logEntry);
+          this.elements.logContainer.scrollTop =
+            this.elements.logContainer.scrollHeight;
+
+          console.log(`[PISIGHT ${type.toUpperCase()}] ${message}`);
+        }
+      }
+
+      // Global instance
+      let pisightClient;
+
+      function connectDevice() {
+        if (!pisightClient) {
+          pisightClient = new PISIGHTClient();
+        }
+        pisightClient.connect();
+      }
+
+      function disconnectDevice() {
+        if (pisightClient) {
+          pisightClient.disconnect();
+        }
+      }
+
+      function startCamera() {
+        if (pisightClient) pisightClient.startCamera();
+      }
+
+      function stopCamera() {
+        if (pisightClient) pisightClient.stopCamera();
+      }
+
+      function captureImage() {
+        if (pisightClient) pisightClient.captureImage();
+      }
+
+      function startAudioRecording() {
+        if (pisightClient) pisightClient.startAudioRecording();
+      }
+
+      function stopAudioRecording() {
+        if (pisightClient) pisightClient.stopAudioRecording();
+      }
+
+      function playAudio() {
+        if (pisightClient) pisightClient.playAudio();
+      }
+
+      function stopAudioPlayback() {
+        if (pisightClient) pisightClient.stopAudioPlayback();
+      }
+
+      function sendManualMessage() {
+        if (pisightClient) pisightClient.sendManualMessage();
+      }
+
+      function handleManualInput(event) {
+        if (pisightClient) pisightClient.handleManualInput(event);
+      }
+
+      function clearImage() {
+        if (pisightClient) pisightClient.clearImage();
+      }
+
+      function testConnection() {
+        if (pisightClient) pisightClient.testConnection();
+      }
+
+      // Initialize on load
+      window.addEventListener("load", () => {
+        pisightClient = new PISIGHTClient();
+        pisightClient.log("PISIGHT Client initialized", "success");
+        pisightClient.log(
+          'Enter server URL and click "Connect Device"',
+          "info"
+        );
+      });
+    </script>
+  </body>
+</html>
